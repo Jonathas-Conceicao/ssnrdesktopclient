@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
 	"net"
 
@@ -17,7 +16,5 @@ func main() {
 	message := ssnr.TestingThings()
 	conn.Write(message.Encode())
 
-	// listen for reply
-	r, err := bufio.NewReader(conn).ReadString('\n')
-	fmt.Print("Message from server: " + r)
+	fmt.Println("Message sent!")
 }
