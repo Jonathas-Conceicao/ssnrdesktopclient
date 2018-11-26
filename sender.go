@@ -79,7 +79,7 @@ func requestUsers() {
 		panic("Failed to dial host")
 	}
 
-	listing := ssnr.TestListingRequest()
+	listing := ssnr.NewListingRequestAll()
 	cn.Write(listing.Encode())
 	fmt.Println("Request sent!")
 
