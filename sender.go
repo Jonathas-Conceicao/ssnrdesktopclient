@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"go/build"
 	"net"
 	"os"
 	"strconv"
@@ -10,6 +11,9 @@ import (
 )
 
 func main() {
+	confFile := build.Default.GOPATH + "/configs/ssnr_sender_config.json"
+	config := ssnr.NewConfig(confFile)
+
 	l := len(os.Args)
 	if l < 2 {
 		printHelp()
@@ -17,34 +21,24 @@ func main() {
 	}
 
 	switch os.Args[1] {
-
 	case "list":
 		if l != 2 {
 			printHelp()
 			return
 		}
-		requestUsers()
+		requestUsers(config)
 
 	case "send":
-		switch l {
-		case 4:
-			target, err := strconv.ParseInt(os.Args[2], 0, 16)
-			if err != nil {
-				printHelp()
-				return
-			}
-			sendMessage(uint16(target), nil, &os.Args[3])
-		case 5:
-			target, err := strconv.ParseInt(os.Args[2], 0, 16)
-			if err != nil {
-				printHelp()
-				return
-			}
-			sendMessage(uint16(target), &os.Args[3], &os.Args[4])
-		default:
+		if l != 4 {
 			printHelp()
 			return
 		}
+		target, err := strconv.ParseInt(os.Args[2], 0, 16)
+		if err != nil {
+			printHelp()
+			return
+		}
+		sendMessage(config, uint16(target), &os.Args[3])
 
 	default:
 		printHelp()
@@ -57,24 +51,25 @@ func printHelp() {
 	fmt.Println(helpMessage)
 }
 
-func sendMessage(recv uint16, sndr *string, content *string) {
-	cn, err := net.Dial("tcp", "localhost:8080")
+func sendMessage(config *ssnr.Config, recv uint16, content *string) {
+	cn, err := net.Dial("tcp", config.Host+config.Port)
 	if err != nil {
 		panic("Failed to dial host")
 	}
 
 	var message *ssnr.Notification
-	if sndr == nil {
+	sndr := config.Name
+	if sndr == "" {
 		message = ssnr.NewAnonymousNotification(recv, *content)
 	} else {
-		message = ssnr.NewNotification(recv, *sndr, *content)
+		message = ssnr.NewNotification(recv, sndr, *content)
 	}
 	cn.Write(message.Encode())
 	fmt.Println("Message sent!")
 }
 
-func requestUsers() {
-	cn, err := net.Dial("tcp", "localhost:8080")
+func requestUsers(config *ssnr.Config) {
+	cn, err := net.Dial("tcp", config.Host+config.Port)
 	if err != nil {
 		panic("Failed to dial host")
 	}
