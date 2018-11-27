@@ -1,93 +1,121 @@
 package main
 
 import (
-	"fmt"
-	"go/build"
+	"errors"
+	"log"
 	"net"
 	"os"
 	"strconv"
+
+	"github.com/urfave/cli"
 
 	ssnr "github.com/Jonathas-Conceicao/ssnrgo"
 )
 
 func main() {
-	confFile := build.Default.GOPATH + "/configs/ssnr_sender_config.json"
-	config := ssnr.NewConfig(confFile)
+	app := cli.NewApp()
+	app.Name = "SSNR desktop sender CLI"
+	app.Usage = "Send distributed notifications over SSNR protocol"
+	app.Version = "0.1.0"
 
-	l := len(os.Args)
-	if l < 2 {
-		printHelp()
-		return
+	cli.HelpFlag = cli.BoolFlag{
+		Name:  "help",
+		Usage: "show this dialog",
+	}
+	app.Flags = []cli.Flag{
+		cli.StringFlag{
+			Name:  "port, p",
+			Value: ":30106",
+			Usage: "Server port",
+		},
+		cli.StringFlag{
+			Name:  "host, h",
+			Value: "196.168.0.1",
+			Usage: "Host's address",
+		},
+		cli.StringFlag{
+			Name:  "name, n",
+			Usage: "Sender's name",
+		},
 	}
 
-	switch os.Args[1] {
-	case "list":
-		if l != 2 {
-			printHelp()
-			return
-		}
-		requestUsers(config)
+	app.Commands = []cli.Command{
+		cli.Command{
+			Name:    "list",
+			Aliases: []string{"l"},
+			Usage:   "Request server the list of avaliable users",
+			Action: func(c *cli.Context) error {
+				config, err := newConfig(c)
+				if err != nil {
+					return err
+				}
+				return requestUsers(config)
+			},
+		},
 
-	case "send":
-		if l != 4 {
-			printHelp()
-			return
-		}
-		target, err := strconv.ParseInt(os.Args[2], 0, 16)
-		if err != nil {
-			printHelp()
-			return
-		}
-		sendMessage(config, uint16(target), &os.Args[3])
+		cli.Command{
+			Name:    "send",
+			Aliases: []string{"s"},
+			Usage:   "Send the `user` a `notification`",
+			Action: func(c *cli.Context) error {
+				config, err := newConfig(c)
+				if err != nil {
+					return err
+				}
+				whom, err := strconv.Atoi(c.Args().Get(0))
+				if err != nil {
+					return err
+				}
+				return sendMessage(config, uint16(whom), c.Args().Get(1))
+			},
+		},
+	}
 
-	default:
-		printHelp()
+	err := app.Run(os.Args)
+	if err != nil {
+		log.Fatal(err)
 	}
 }
 
-// TODO: Add help message for sender
-func printHelp() {
-	helpMessage := "No help message just yet"
-	fmt.Println(helpMessage)
+func newConfig(c *cli.Context) (*ssnr.Config, error) {
+	return ssnr.NewConfig(
+		c.Parent().String("host"),
+		c.Parent().String("port"),
+		c.Parent().String("name"))
 }
 
-func sendMessage(config *ssnr.Config, recv uint16, content *string) {
+func sendMessage(config *ssnr.Config, recv uint16, content string) error {
 	cn, err := net.Dial("tcp", config.Host+config.Port)
 	if err != nil {
-		panic("Failed to dial host")
+		return err
 	}
-
-	var message *ssnr.Notification
-	sndr := config.Name
-	if sndr == "" {
-		message = ssnr.NewAnonymousNotification(recv, *content)
-	} else {
-		message = ssnr.NewNotification(recv, sndr, *content)
-	}
+	message := ssnr.NewNotification(recv, config.Name, content)
 	cn.Write(message.Encode())
-	fmt.Println("Message sent!")
+	log.Println("Message sent!")
+	return nil
 }
 
-func requestUsers(config *ssnr.Config) {
+func requestUsers(config *ssnr.Config) error {
 	cn, err := net.Dial("tcp", config.Host+config.Port)
 	if err != nil {
-		panic("Failed to dial host")
+		return err
 	}
 
 	listing := ssnr.NewListingRequestAll()
 	cn.Write(listing.Encode())
-	fmt.Println("Request sent!")
+	log.Println("Request sent!")
 
 	tmp := make([]byte, 500)
 	_, err = cn.Read(tmp)
 	if err != nil {
-		panic("Error found when reading message")
+		return err
 	}
 	if tmp[0] == 0 {
-		panic("Error message received back!")
+		return errors.New("Request users failed!")
 	}
 
 	listing = ssnr.DecodeListingReceived(tmp)
-	fmt.Println("List received!")
-	fmt.Println(listing)
+	log.Println("Receivers list:")
+	log.Println(listing)
+	return nil
 }
