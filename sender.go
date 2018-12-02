@@ -1,7 +1,7 @@
 package main
 
 import (
-	"errors"
+	"bufio"
 	"log"
 	"net"
 	"os"
@@ -105,16 +105,10 @@ func requestUsers(config *ssnr.Config) error {
 	cn.Write(listing.Encode())
 	log.Println("Request sent!")
 
-	tmp := make([]byte, 500)
-	_, err = cn.Read(tmp)
+	_, listing, err = ssnr.ReadListing(bufio.NewReader(cn), false)
 	if err != nil {
 		return err
 	}
-	if tmp[0] == 0 {
-		return errors.New("Request users failed!")
-	}
-
-	listing = ssnr.DecodeListingReceived(tmp)
 	log.Println("Receivers list:")
 	log.Println(listing)
 	return nil

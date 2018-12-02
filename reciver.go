@@ -57,16 +57,19 @@ func main() {
 			return err
 		}
 
-		reader, err := handleLogin(conn, uint16(c.Int("code")))
+		reader, err := handleLogin(
+			conn,
+			uint16(c.Int("code")),
+			config.Name)
 		if err != nil {
 			return err
 		}
 		for {
-			n, err := readNextNotification(reader)
+			_, ntf, err := ssnr.ReadNotification(reader)
 			if err != nil {
 				return err
 			}
-			err = display(n)
+			err = display(ntf)
 			if err != nil {
 				return err
 			}
@@ -79,10 +82,14 @@ func main() {
 	}
 }
 
-func display(n *ssnr.Notification) error { return nil }
+func display(n *ssnr.Notification) error {
+	log.Println(n)
+	return nil
+}
 
-func handleLogin(cn net.Conn, code uint16) (*bufio.Reader, error) {
-	request := ssnr.NewRegister(code, "Jonathas")
+func handleLogin(cn net.Conn, code uint16, name string) (
+	*bufio.Reader, error) {
+	request := ssnr.NewRegister(code, name)
 	log.Println("Requesting register")
 	_, err := cn.Write(request.Encode())
 	if err != nil {
@@ -90,12 +97,7 @@ func handleLogin(cn net.Conn, code uint16) (*bufio.Reader, error) {
 	}
 
 	r := bufio.NewReader(cn)
-	tmp := make([]byte, 500)
-	_, err = r.Read(tmp)
-	request, err = ssnr.DecodeRegister(tmp)
-	if err != nil {
-		return r, err
-	}
+	_, request, err = ssnr.ReadRegister(r)
 
 	switch request.GetReturn() {
 	case ssnr.ConnAccepted:
@@ -113,18 +115,6 @@ func handleLogin(cn net.Conn, code uint16) (*bufio.Reader, error) {
 		return r, errors.New("Invalid error message returned")
 	}
 }
-
-func readNextNotification(rd *bufio.Reader) (*ssnr.Notification, error) {
-	return nil, errors.New("TO DO")
-}
-
-// func handleNotification(data []byte) error {
-// 	message := ssnr.DecodeNotification(data)
-// 	log.Println("Message Received:\n" + message.String())
-// 	log.Println("Current list of users: ", users.Length())
-// 	log.Print(users)
-// 	return nil
-// }
 
 func handleUnknown(rd *bufio.Reader) error {
 	tmp := make([]byte, 1)
