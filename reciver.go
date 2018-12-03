@@ -7,6 +7,7 @@ import (
 	"net"
 	"os"
 
+	gnomeNotify "github.com/TheCreeper/go-notify"
 	"github.com/urfave/cli"
 
 	ssnr "github.com/Jonathas-Conceicao/ssnrgo"
@@ -83,8 +84,14 @@ func main() {
 }
 
 func display(n *ssnr.Notification) error {
-	log.Println(n)
-	return nil
+	log.Println("Notification Received",
+		"from: \""+n.GetEmitter()+"\"",
+		n.GetMessage())
+	ntf := gnomeNotify.NewNotification(
+		"SSNR Notification",
+		n.GetTimeString()+" -- "+n.GetMessage())
+	_, err := ntf.Show()
+	return err
 }
 
 func handleLogin(cn net.Conn, code uint16, name string) (
