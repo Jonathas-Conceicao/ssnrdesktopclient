@@ -6,8 +6,9 @@ import (
 	"log"
 	"net"
 	"os"
+	"reflect"
 
-	gnomeNotify "github.com/TheCreeper/go-notify"
+	notify "github.com/TheCreeper/go-notify"
 	"github.com/urfave/cli"
 
 	ssnr "github.com/Jonathas-Conceicao/ssnrgo"
@@ -79,6 +80,7 @@ func main() {
 
 	err := app.Run(os.Args)
 	if err != nil {
+		log.Println("App execution returned error of type:", reflect.TypeOf(err))
 		log.Fatal(err)
 	}
 }
@@ -87,8 +89,8 @@ func display(n *ssnr.Notification) error {
 	log.Println("Notification Received",
 		"from: \""+n.GetEmitter()+"\"",
 		n.GetMessage())
-	ntf := gnomeNotify.NewNotification(
-		"SSNR Notification",
+	ntf := notify.NewNotification(
+		"SSNR Notification from:"+n.GetEmitter(),
 		n.GetTimeString()+" -- "+n.GetMessage())
 	_, err := ntf.Show()
 	return err
