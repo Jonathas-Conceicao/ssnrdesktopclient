@@ -2,7 +2,7 @@ package main
 
 import (
 	"bufio"
-	"log"
+	"fmt"
 	"net"
 	"os"
 	"strconv"
@@ -73,7 +73,8 @@ func main() {
 
 	err := app.Run(os.Args)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Printf("Error of type: %T", err)
+		panic(err)
 	}
 }
 
@@ -91,7 +92,6 @@ func sendMessage(config *ssnr.Config, recv uint16, content string) error {
 	}
 	message := ssnr.NewNotification(recv, config.Name, content)
 	cn.Write(message.Encode())
-	log.Println("Message sent!")
 	return nil
 }
 
@@ -103,13 +103,11 @@ func requestUsers(config *ssnr.Config) error {
 
 	listing := ssnr.NewListingRequestAll()
 	cn.Write(listing.Encode())
-	log.Println("Request sent!")
 
 	_, listing, err = ssnr.ReadListing(bufio.NewReader(cn), false)
 	if err != nil {
 		return err
 	}
-	log.Println("Receivers list:")
-	log.Println(listing)
+	fmt.Println(listing)
 	return nil
 }

@@ -3,10 +3,11 @@ package main
 import (
 	"bufio"
 	"errors"
+	"fmt"
+	"io"
 	"log"
 	"net"
 	"os"
-	"reflect"
 
 	notify "github.com/TheCreeper/go-notify"
 	"github.com/urfave/cli"
@@ -66,21 +67,45 @@ func main() {
 		if err != nil {
 			return err
 		}
+
 		for {
-			_, ntf, err := ssnr.ReadNotification(reader)
+			code, err := reader.Peek(1)
+			if err == io.EOF {
+				log.Println("Server was closed")
+				return err
+			}
 			if err != nil {
 				return err
 			}
-			err = display(ntf)
-			if err != nil {
-				return err
+
+			switch code[0] {
+			case ssnr.NotificationCode:
+				_, ntf, err := ssnr.ReadNotification(reader)
+				if err != nil {
+					return err
+				}
+				err = display(ntf)
+				if err != nil {
+					return err
+				}
+			case ssnr.PingCode:
+				data := make([]byte, 2)
+				reader.Read(data)
+				log.Println("Received ping from host")
+			default:
+				data := make([]byte, 1)
+				v, err := reader.Read(data)
+				if err != nil {
+					return err
+				}
+				return errors.New("Recived invalid code:" + string(v))
 			}
 		}
 	}
 
 	err := app.Run(os.Args)
 	if err != nil {
-		log.Println("App execution returned error of type:", reflect.TypeOf(err))
+		log.Printf("Error of type: %T", err)
 		log.Fatal(err)
 	}
 }
@@ -90,8 +115,11 @@ func display(n *ssnr.Notification) error {
 		"from: \""+n.GetEmitter()+"\"",
 		n.GetMessage())
 	ntf := notify.NewNotification(
-		"SSNR Notification from:"+n.GetEmitter(),
-		n.GetTimeString()+" -- "+n.GetMessage())
+		"SSNR Notification",
+		fmt.Sprintf("[%s] - %s\n%s",
+			n.GetEmitter(),
+			n.GetTimeString(),
+			n.GetMessage()))
 	_, err := ntf.Show()
 	return err
 }
