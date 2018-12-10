@@ -33,7 +33,7 @@ func main() {
 		},
 		cli.StringFlag{
 			Name:  "host, h",
-			Value: "196.168.0.1",
+			Value: "localhost",
 			Usage: "Host's address",
 		},
 		cli.StringFlag{
@@ -42,6 +42,7 @@ func main() {
 		},
 		cli.IntFlag{
 			Name:  "code, c",
+			Value: 0,
 			Usage: "Desired register ID (16 bits unsigned integer)",
 		},
 	}

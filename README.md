@@ -1,2 +1,3 @@
-# ssnrdesktopclient
-Aplicação cliente Desktop do SSNR (Sistema Simples de Notificação Remota), Trabalho Redes 2018/2.
+# ssnrreceiver
+Aplicação cliente receptor do SSNR (Sistema Simples de Notificação Remota), Trabalho Redes 2018/2.  
+[Protocolo](https://github.com/Jonathas-Conceicao/SSNR-Protocolo)
