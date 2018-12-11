@@ -91,7 +91,16 @@ func main() {
 				}
 			case ssnr.PingCode:
 				data := make([]byte, 2)
-				reader.Read(data)
+				n, err := reader.Read(data)
+				if err != nil {
+					return err
+				}
+				if n == 1 {
+					_, err := reader.Read(data[1:])
+					if err != nil {
+						return err
+					}
+				}
 				log.Println("Received ping from host")
 			default:
 				data := make([]byte, 1)
